@@ -1,0 +1,163 @@
+groups:
+  - name: url_shortener_alerts
+    rules:
+      # 1. 服务可用性告警
+      - alert: 服务离线
+        # 匹配任何 up 指标为 0 的任务
+        expr: up == 0
+        for: 30s
+        labels:
+          severity: critical
+          service: "{{ $labels.job }}"
+        annotations:
+          summary: "服务已停止运行"
+          description: "任务 {{ $labels.job }} (实例 {{ $labels.instance }}) 离线已超过 30 秒。"
+
+      # 2. API 响应延迟告警 (SLA 目标: 重定向 <100ms, 缩短链接 <200ms)
+      - alert: API延迟偏高
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 0.2
+        for: 2m
+        labels:
+          severity: warning
+          service: "api"
+        annotations:
+          summary: "检测到 API 响应延迟"
+          description: "95% 的请求延迟为 {{ $value | printf \"%.2f\" }}s，超过了 200ms 的 SLA 标准。"
+
+      - alert: API延迟极高
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 0.5
+        for: 1m
+        labels:
+          severity: critical
+          service: "api"
+        annotations:
+          summary: "API 响应延迟严重超标"
+          description: "95% 的请求延迟为 {{ $value | printf \"%.2f\" }}s，严重影响用户体验。"
+
+      # 3. 重定向延迟告警 (目标: <100ms)
+      - alert: 重定向延迟偏高
+        expr: histogram_quantile(0.95, rate(redirect_request_duration_seconds_bucket[5m])) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          service: "redirect"
+        annotations:
+          summary: "短链接跳转延迟"
+          description: "重定向 95% 延迟为 {{ $value | printf \"%.2f\" }}s，超过 100ms 标准。"
+
+      # 4. 错误率告警
+      - alert: 错误率偏高
+        expr: sum by (job) (rate(http_requests_total{status=~"5.."}[5m])) / sum by (job) (rate(http_requests_total[5m])) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "检测到高错误率"
+          description: "服务 {{ $labels.job }} 的 5xx 错误率已达 {{ $value | printf \"%.2f\" }}。"
+
+      - alert: 错误率极高
+        expr: sum by (job) (rate(http_requests_total{status=~"5.."}[5m])) / sum by (job) (rate(http_requests_total[5m])) > 0.1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "错误率严重超标"
+          description: "服务 {{ $labels.job }} 的错误率已超过 10% (当前: {{ $value | printf \"%.2f\" }})。"
+
+      # 5. 缓存性能告警 (目标: 95% 命中率)
+      - alert: Redis命中率偏低
+        expr: redis_cache_hit_ratio < 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: "redis"
+        annotations:
+          summary: "Redis 缓存命中率下降"
+          description: "当前缓存命中率为 {{ $value | printf \"%.2f\" }}，低于 90% 阈值。"
+
+      # 6. 数据库连接池告警
+      - alert: 数据库连接池即将耗尽
+        expr: postgres_active_connections / postgres_max_connections > 0.9
+        for: 1m
+        labels:
+          severity: critical
+          service: "postgresql"
+        annotations:
+          summary: "PostgreSQL 连接数过高"
+          description: "活动连接数已占最大允许值的 {{ $value | printf \"%.2f\" }}。"
+
+      # 7. NATS 消息队列告警
+      - alert: NATS慢消费者检测
+        expr: nats_slow_consumers > 0
+        for: 30s
+        labels:
+          severity: warning
+          service: "nats"
+        annotations:
+          summary: "NATS 出现慢消费者"
+          description: "检测到 {{ $value }} 个 NATS 慢消费者，可能导致消息积压。"
+
+      # 8. 资源利用率告警 (需安装 cAdvisor)
+      - alert: 容器CPU占用过高
+        expr: rate(container_cpu_usage_seconds_total[5m]) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU 使用率过高"
+          description: "容器 {{ $labels.name }} CPU 使用率已达 {{ $value | printf \"%.2f\" }}%。"
+
+      - alert: 容器内存即将溢出
+        expr: container_memory_usage_bytes / container_spec_memory_limit_bytes * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "内存使用率过高"
+          description: "容器 {{ $labels.name }} 内存占用已达 {{ $value | printf \"%.2f\" }}%。"
+
+      # 9. 业务逻辑异常告警
+      - alert: 短链接创建速率异常
+        expr: rate(urls_created_total[5m]) > 1000
+        for: 2m
+        labels:
+          severity: info
+          service: "url-shortener"
+        annotations:
+          summary: "短链接创建速度极快"
+          description: "当前创建速率为每秒 {{ $value }} 个，请确认是否遭受恶意攻击。"
+
+  - name: infrastructure_alerts
+    rules:
+      # PostgreSQL 状态告警
+      - alert: PostgreSQL宕机
+        expr: pg_up == 0
+        for: 30s
+        labels:
+          severity: critical
+          service: "postgresql"
+        annotations:
+          summary: "数据库无法访问"
+          description: "PostgreSQL 数据库实例停止响应。"
+
+      # Redis 状态告警
+      - alert: Redis宕机
+        expr: redis_up == 0
+        for: 30s
+        labels:
+          severity: critical
+          service: "redis"
+        annotations:
+          summary: "Redis 缓存宕机"
+          description: "Redis 服务已停止响应。"
+
+      # NATS 状态告警
+      - alert: NATS宕机
+        expr: nats_up == 0
+        for: 30s
+        labels:
+          severity: critical
+          service: "nats"
+        annotations:
+          summary: "NATS 消息服务器宕机"
+          description: "NATS 消息中间件停止服务，微服务间通讯受阻。"

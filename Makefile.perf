@@ -1,0 +1,82 @@
+
+# =============================================================================
+# PERFORMANCE TESTING COMMANDS (For Resume Metrics)
+# =============================================================================
+
+performance-test: ## Run complete performance test suite (TTFB, QPS, Cache Hit Rate, etc.)
+\t@echo "🚀 完整性能测试套件"
+\t@echo "==================="
+\t@echo ""
+\t@echo "📊 这将测试以下指标:"
+\t@echo "  1. TTFB (Time to First Byte) - 目标 < 20ms"
+\t@echo "  2. QPS (Queries Per Second) - 目标 > 10,000"
+\t@echo "  3. Redis 缓存命中率 - 目标 > 95%"
+\t@echo "  4. P99 延迟 - 目标 < 50ms"
+\t@echo "  5. 短码冲突率 - 目标 < 0.1%"
+\t@echo ""
+\t@echo "⚠️  注意: 完整测试需要 5-10 分钟"
+\t@echo ""
+\t@bash scripts/perf/run_all_tests.sh
+
+perf-quick: ## Quick performance test (TTFB + Cache Hit Rate)
+\t@echo "⚡ 快速性能测试"
+\t@echo "==============="
+\t@bash scripts/perf/test_ttfb.sh
+\t@echo ""
+\t@bash scripts/perf/test_cache_hit_rate.sh
+
+perf-ttfb: ## Test TTFB (Time to First Byte)
+\t@echo "🎯 TTFB 测试"
+\t@bash scripts/perf/test_ttfb.sh
+
+perf-cache: ## Test Redis cache hit rate
+\t@echo "💾 Redis 缓存命中率测试"
+\t@bash scripts/perf/test_cache_hit_rate.sh
+
+perf-qps: ## Test QPS using wrk (requires wrk installation)
+\t@echo "📈 QPS 压力测试"
+\t@echo "==============="
+\t@if command -v wrk > /dev/null 2>&1; then \
+\t\techo "使用 wrk 进行压测..."; \
+\t\tSHORT_CODE=$$(curl -s -X POST http://localhost:$(REST_PORT)/api/v1/shorten \
+\t\t\t-H "Content-Type: application/json" \
+\t\t\t-d '{"long_url":"https://qps-test.com","user_id":"qps_test","custom_alias":"qps-test"}' | jq -r '.short_code'); \
+\t\techo "测试短链接: $$SHORT_CODE"; \
+\t\techo "执行 30 秒压测 (12 线程, 400 并发)..."; \
+\t\twrk -t12 -c400 -d30s --latency http://localhost:$(REST_PORT)/$$SHORT_CODE; \
+\telse \
+\t\techo "❌ wrk 未安装"; \
+\t\techo "安装方法: https://github.com/wg/wrk"; \
+\tfi
+
+perf-report: ## View latest performance test report
+\t@echo "📊 查看最新性能测试报告"
+\t@echo "======================="
+\t@LATEST_REPORT=$$(ls -t performance_results/performance_report_*.md 2>/dev/null | head -1); \
+\tif [ -n "$$LATEST_REPORT" ]; then \
+\t\tcat "$$LATEST_REPORT"; \
+\telse \
+\t\techo "❌ 未找到性能测试报告"; \
+\t\techo "请先运行: make performance-test"; \
+\tfi
+
+perf-help: ## Show performance testing guide
+\t@echo "📖 性能测试指南"
+\t@echo "==============="
+\t@echo ""
+\t@echo "可用命令:"
+\t@echo "  make performance-test  - 运行完整性能测试套件"
+\t@echo "  make perf-quick        - 快速测试 (TTFB + 缓存)"
+\t@echo "  make perf-ttfb         - 测试 TTFB"
+\t@echo "  make perf-cache        - 测试缓存命中率"
+\t@echo "  make perf-qps          - 测试 QPS (需要 wrk)"
+\t@echo "  make perf-report       - 查看最新测试报告"
+\t@echo ""
+\t@echo "详细文档: docs/PERFORMANCE_TESTING.md"
+\t@echo ""
+\t@echo "💡 简历指标建议:"
+\t@echo "  - TTFB < 20ms"
+\t@echo "  - QPS > 10,000"
+\t@echo "  - 缓存命中率 > 95%"
+\t@echo "  - P99 延迟 < 50ms"
+\t@echo "  - 冲突率 < 0.1%"

@@ -1,0 +1,83 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'url-shortener-dev'
+    environment: 'development'
+
+# =============================================================================
+# 告警规则文件路径 (确保文件名与你保存的 alert_rules.yml 一致)
+# =============================================================================
+rule_files:
+  - "/etc/prometheus/alert_rules.yml"
+
+# =============================================================================
+# 抓取配置
+# =============================================================================
+scrape_configs:
+
+  # ---------------------------------------------------------------------------
+  # 应用服务 - 核心 API 服务 (修正了 host.docker.internal 错误)
+  # ---------------------------------------------------------------------------
+  - job_name: 'rest-api-service'
+    static_configs:
+      - targets: ['rest-api-service:8080']  # 修正：使用 Docker 内部服务名
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    metric_relabel_configs:
+      - target_label: service
+        replacement: 'rest-api'
+
+  # ---------------------------------------------------------------------------
+  # 重定向服务
+  # ---------------------------------------------------------------------------
+  - job_name: 'redirect-service'
+    static_configs:
+      - targets: ['redirect-service:9091']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    metric_relabel_configs:
+      - target_label: service
+        replacement: 'redirect-service'
+
+  # ---------------------------------------------------------------------------
+  # 短链接逻辑服务
+  # ---------------------------------------------------------------------------
+  - job_name: 'url-shortener-service'
+    static_configs:
+      - targets: ['url-shortener-service:8001']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    metric_relabel_configs:
+      - target_label: service
+        replacement: 'url-shortener-svc'
+
+  # ---------------------------------------------------------------------------
+  # 分析服务
+  # ---------------------------------------------------------------------------
+  - job_name: 'analytics-service'
+    static_configs:
+      - targets: ['analytics-service:8002']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    metric_relabel_configs:
+      - target_label: service
+        replacement: 'analytics-svc'
+
+  # ---------------------------------------------------------------------------
+  # Prometheus 自我监控
+  # ---------------------------------------------------------------------------
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'prometheus_(up|tsdb_.*|rule_.*|config_.*)'
+        action: keep
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []

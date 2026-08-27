@@ -1,0 +1,153 @@
+syntax = "proto3"; // 指定语法版本为 proto3
+
+package analytics; // 定义包名为 analytics
+
+option go_package = "github.com/go-systems-lab/go-url-shortener/proto/analytics"; // 指定生成的Go代码包路径
+
+// 数据分析服务，用于URL点击追踪和指标统计
+service AnalyticsService {
+    // 处理点击事件（从 NATS 消息队列异步接收）
+    rpc ProcessClick(ClickEvent) returns (ProcessResponse);
+
+    // 获取指定短链接的统计数据
+    rpc GetURLStats(StatsRequest) returns (StatsResponse);
+
+    // 获取点击量排名前列的 URL 列表
+    rpc GetTopURLs(TopURLsRequest) returns (TopURLsResponse);
+
+    // 获取全站数据概览仪表盘
+    rpc GetDashboard(DashboardRequest) returns (DashboardResponse);
+
+    // 服务健康检查接口
+    rpc Health(HealthRequest) returns (HealthResponse);
+}
+
+// 待处理的点击事件消息体
+message ClickEvent {
+    string short_code = 1; // 短链接编码
+    string long_url = 2; // 原始长链接
+    string client_ip = 3; // 访问者 IP
+    string user_agent = 4; // 浏览器 UA 标识
+    string referrer = 5; // 来源页面
+    string country = 6; // 国家
+    string city = 7; // 城市
+    string device_type = 8; // 设备类型（手机/电脑）
+    string browser = 9; // 浏览器类型
+    string os = 10; // 操作系统
+    int64 timestamp = 11; // 点击时间戳
+    string session_id = 12; // 会话 ID
+    bool is_unique = 13; // 是否为独立点击
+}
+
+// 点击处理的响应结果
+message ProcessResponse {
+    bool success = 1; // 是否成功
+    string error = 2; // 错误信息内容
+}
+
+// 查询统计数据的请求体
+message StatsRequest {
+    string short_code = 1; // 目标短链接
+    int64 start_time = 2; // 起始时间
+    int64 end_time = 3; // 结束时间
+    string granularity = 4; // 统计粒度：hour, day, week, month
+}
+
+// 统计结果响应体
+message StatsResponse {
+    string short_code = 1; // 短链接编码
+    int64 total_clicks = 2; // 总点击次数
+    int64 unique_clicks = 3; // 独立访客数
+    repeated TimeSeriesPoint time_series = 4; // 时序数据列表
+    repeated CountryStats country_stats = 5; // 按国家统计
+    repeated DeviceStats device_stats = 6; // 按设备统计
+    repeated BrowserStats browser_stats = 7; // 按浏览器统计
+    repeated ReferrerStats referrer_stats = 8; // 按来源统计
+}
+
+// 时序数据点定义
+message TimeSeriesPoint {
+    int64 timestamp = 1; // 时间戳
+    int64 clicks = 2; // 点击数
+    int64 unique_clicks = 3; // 独立点击数
+}
+
+// 国家分布统计
+message CountryStats {
+    string country = 1; // 国家名称
+    int64 clicks = 2; // 点击数
+    float percentage = 3; // 占比百分比
+}
+
+// 设备类型统计
+message DeviceStats {
+    string device_type = 1; // 设备名称
+    int64 clicks = 2; // 点击数
+    float percentage = 3; // 占比百分比
+}
+
+// 浏览器分布统计
+message BrowserStats {
+    string browser = 1; // 浏览器名称
+    int64 clicks = 2; // 点击数
+    float percentage = 3; // 占比百分比
+}
+
+// 来源域名统计
+message ReferrerStats {
+    string referrer = 1; // 来源地址
+    int64 clicks = 2; // 点击数
+    float percentage = 3; // 占比百分比
+}
+
+// 热门排行请求
+message TopURLsRequest {
+    int32 limit = 1; // 返回条数限制
+    int64 start_time = 2; // 起始时间
+    int64 end_time = 3; // 结束时间
+    string sort_by = 4; // 排序字段：clicks, unique_clicks等
+}
+
+// 热门排行响应
+message TopURLsResponse {
+    repeated URLMetrics urls = 1; // 具体的指标列表
+}
+
+// URL 指标明细
+message URLMetrics {
+    string short_code = 1; // 短链接码
+    string long_url = 2; // 原始链接
+    int64 total_clicks = 3; // 总点击数
+    int64 unique_clicks = 4; // 独立访客数
+    int64 created_at = 5; // 创建时间
+    int64 last_clicked = 6; // 最后点击时间
+}
+
+// 仪表盘数据请求
+message DashboardRequest {
+    int64 start_time = 1; // 范围起始时间
+    int64 end_time = 2; // 范围结束时间
+}
+
+// 仪表盘数据响应内容
+message DashboardResponse {
+    int64 totalUrls = 1; // 全站链接总数
+    int64 totalClicks = 2; // 全站总点击数
+    int64 uniqueClicks = 3; // 全站总独立点击
+    int64 activeUrls = 4; // 有效链接数
+    repeated TimeSeriesPoint clickTimeline = 5; // 点击量时间线
+    repeated URLMetrics topUrls = 6; // 最热链接列表
+    repeated CountryStats topCountries = 7; // 热门国家排行
+    repeated DeviceStats deviceBreakdown = 8; // 设备分布细分
+}
+
+// 健康检查请求（空）
+message HealthRequest {}
+
+// 健康检查返回体
+message HealthResponse {
+    string status = 1; // 状态描述
+    string service = 2; // 服务名标识
+    string version = 3; // 版本号信息
+    int64 timestamp = 4; // 当前时间戳
+}

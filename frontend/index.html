@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="高性能微服务架构的 URL 短链接服务 - 快速、安全、可靠">
+    <title>LinkShort - 专业短链接服务平台</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+    <!-- 背景装饰 -->
+    <div class="bg-gradient"></div>
+    <div class="bg-aurora"></div>
+    <div class="bg-grid"></div>
+
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <div class="logo">
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8 12L16 4L24 12" stroke="url(#gradient1)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M8 20L16 28L24 20" stroke="url(#gradient1)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M12 16H20" stroke="url(#gradient1)" stroke-width="2.5" stroke-linecap="round"/>
+                        <defs>
+                            <linearGradient id="gradient1" x1="8" y1="4" x2="24" y2="28" gradientUnits="userSpaceOnUse">
+                                <stop stop-color="#00D4FF"/>
+                                <stop offset="1" stop-color="#9D4EDD"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <span class="logo-text">LinkShort</span>
+                </div>
+            </div>
+            <div class="nav-menu">
+                <button class="nav-link active" data-view="user">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                    用户端
+                </button>
+                <button class="nav-link" data-view="admin">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <path d="M3 9h18M9 21V9"/>
+                    </svg>
+                    管理员
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主容器 -->
+    <main class="main-container">
+        <!-- 用户端视图 -->
+        <div id="user-view" class="view active">
+            <!-- 英雄区域 - 创建短链接 -->
+            <section class="hero-section">
+                <div class="container">
+                    <div class="hero-content">
+                        <div class="hero-badge">
+                            <span class="dot"></span>
+                            基于 Go 微服务 · 毫秒级响应
+                        </div>
+                        <h1 class="hero-title">
+                            <span class="gradient-text">极速创建</span>
+                            <br>您的专属短链接
+                        </h1>
+                        <p class="hero-subtitle">基于 Go Micro 微服务架构，提供毫秒级重定向、实时点击分析与企业级可靠性</p>
+
+                        <!-- 创建短链接表单 -->
+                        <div class="url-form-card glass-card">
+                            <form id="createUrlForm">
+                                <div class="form-group">
+                                    <label for="longUrl">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                                        </svg>
+                                        原始链接
+                                    </label>
+                                    <input type="url" id="longUrl" placeholder="https://example.com/your-very-long-url" required autocomplete="off">
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="userId">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                                <circle cx="12" cy="7" r="4"/>
+                                            </svg>
+                                            用户 ID
+                                        </label>
+                                        <input type="text" id="userId" placeholder="user123" required autocomplete="off">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="customAlias">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M12 20h9"/>
+                                                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                                            </svg>
+                                            自定义短码 (可选)
+                                        </label>
+                                        <input type="text" id="customAlias" placeholder="my-link" autocomplete="off">
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary btn-large" id="submitBtn">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                                    </svg>
+                                    立即生成短链接
+                                </button>
+                            </form>
+
+                            <!-- 成功结果显示 -->
+                            <div id="urlResult" class="url-result hidden">
+                                <div class="result-header">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                        <polyline points="22 4 12 14.01 9 11.01"/>
+                                    </svg>
+                                    <h3>短链接创建成功！</h3>
+                                </div>
+                                <div class="result-main">
+                                    <div class="result-content">
+                                        <div class="result-url">
+                                            <input type="text" id="shortUrlDisplay" readonly>
+                                            <button class="btn btn-copy" id="copyBtn" type="button">
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                                </svg>
+                                                复制
+                                            </button>
+                                        </div>
+                                        <div class="result-info">
+                                            <div class="info-item">
+                                                <span class="info-label">短码:</span>
+                                                <span class="info-value" id="shortCodeDisplay"></span>
+                                            </div>
+                                            <div class="info-item">
+                                                <span class="info-label">创建时间:</span>
+                                                <span class="info-value" id="createdAtDisplay"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="qr-wrap" id="qrCode" title="扫码访问短链接"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 链接管理区域 -->
+            <section class="links-section">
+                <div class="container">
+                    <div class="section-header">
+                        <h2>我的链接<span class="sub" id="linksCount"></span></h2>
+                        <div class="header-tools">
+                            <div class="owner-box">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="12" cy="7" r="4"/>
+                                </svg>
+                                <input type="text" id="ownerId" placeholder="输入用户 ID 查询">
+                            </div>
+                            <button class="btn btn-ghost" id="loadLinksBtn" type="button">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M23 4v6h-6M1 20v-6h6"/>
+                                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                                </svg>
+                                加载
+                            </button>
+                            <div class="search-box">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="11" cy="11" r="8"/>
+                                    <path d="m21 21-4.35-4.35"/>
+                                </svg>
+                                <input type="text" id="searchLinks" placeholder="搜索链接...">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="linksList" class="links-grid">
+                        <div class="empty-state">
+                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                            </svg>
+                            <p>输入用户 ID 并点击「加载」查看该用户的短链接</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- 管理员视图 -->
+        <div id="admin-view" class="view">
+            <section class="dashboard-section">
+                <div class="container">
+                    <h1 class="page-title">系统监控仪表板</h1>
+                    <p class="page-sub">实时聚合来自 Analytics 微服务的核心业务指标与点击趋势</p>
+
+                    <!-- KPI 指标卡片 -->
+                    <div class="kpi-grid">
+                        <div class="kpi-card glass-card">
+                            <div class="kpi-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                                </svg>
+                            </div>
+                            <div class="kpi-content">
+                                <div class="kpi-label">总链接数</div>
+                                <div class="kpi-value" id="totalUrls">-</div>
+                                <div class="kpi-change positive" id="activeUrlsWrap">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                    <span id="activeUrls">-</span> 活跃
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="kpi-card glass-card">
+                            <div class="kpi-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                                </svg>
+                            </div>
+                            <div class="kpi-content">
+                                <div class="kpi-label">总点击量</div>
+                                <div class="kpi-value" id="totalClicks">-</div>
+                                <div class="kpi-change positive">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+                                    累计点击
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="kpi-card glass-card">
+                            <div class="kpi-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="9" cy="7" r="4"/>
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                                </svg>
+                            </div>
+                            <div class="kpi-content">
+                                <div class="kpi-label">独立访客</div>
+                                <div class="kpi-value" id="uniqueClicks">-</div>
+                                <div class="kpi-change positive">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+                                    UV
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="kpi-card glass-card">
+                            <div class="kpi-icon" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <polyline points="12 6 12 12 16 14"/>
+                                </svg>
+                            </div>
+                            <div class="kpi-content">
+                                <div class="kpi-label">点击转化率</div>
+                                <div class="kpi-value" id="ctr">-</div>
+                                <div class="kpi-change positive">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+                                    每链接均点击
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 图表区域 -->
+                    <div class="charts-grid">
+                        <div class="chart-card glass-card">
+                            <div class="chart-header">
+                                <h3>点击趋势</h3>
+                                <select id="chartTimeRange" class="chart-select">
+                                    <option value="24h">最近 24 小时</option>
+                                    <option value="7d" selected>最近 7 天</option>
+                                    <option value="30d">最近 30 天</option>
+                                </select>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="clicksChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="chart-card glass-card">
+                            <div class="chart-header">
+                                <h3>热门链接 TOP 10</h3>
+                            </div>
+                            <div id="topLinksList" class="top-links-list"></div>
+                        </div>
+                    </div>
+
+                    <!-- 设备 & 地域 -->
+                    <div class="charts-grid-2">
+                        <div class="chart-card glass-card">
+                            <div class="chart-header"><h3>设备分布</h3></div>
+                            <div class="chart-container-sm"><canvas id="deviceChart"></canvas></div>
+                        </div>
+                        <div class="chart-card glass-card">
+                            <div class="chart-header"><h3>热门地区 TOP 5</h3></div>
+                            <div class="chart-container-sm"><canvas id="countryChart"></canvas></div>
+                        </div>
+                    </div>
+
+                    <!-- 监控工具链接 -->
+                    <div class="monitoring-tools">
+                        <h3>外部监控工具</h3>
+                        <div class="tools-grid">
+                            <a href="http://localhost:9090" target="_blank" rel="noopener" class="tool-card glass-card">
+                                <div class="tool-icon" style="background: linear-gradient(135deg, #e96443 0%, #904e95 100%);">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+                                </div>
+                                <div class="tool-content"><h4>Prometheus</h4><p>指标收集与查询</p></div>
+                                <svg class="tool-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                            </a>
+
+                            <a href="http://localhost:3000" target="_blank" rel="noopener" class="tool-card glass-card">
+                                <div class="tool-icon" style="background: linear-gradient(135deg, #f46800 0%, #ffa500 100%);">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+                                </div>
+                                <div class="tool-content"><h4>Grafana</h4><p>可视化仪表板</p></div>
+                                <svg class="tool-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                            </a>
+
+                            <a href="http://localhost:16686" target="_blank" rel="noopener" class="tool-card glass-card">
+                                <div class="tool-icon" style="background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                                </div>
+                                <div class="tool-content"><h4>Jaeger</h4><p>分布式追踪</p></div>
+                                <svg class="tool-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                            </a>
+
+                            <a href="/docs/index.html" target="_blank" rel="noopener" class="tool-card glass-card">
+                                <div class="tool-icon" style="background: linear-gradient(135deg, #85d996 0%, #38b2ac 100%);">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                                </div>
+                                <div class="tool-content"><h4>Swagger API</h4><p>API 文档</p></div>
+                                <svg class="tool-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Toast 通知容器 -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- 加载指示器 -->
+    <div id="loading" class="loading-overlay hidden">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- 模态框 - 链接详情 -->
+    <div id="linkModal" class="modal hidden">
+        <div class="modal-overlay"></div>
+        <div class="modal-content glass-card">
+            <div class="modal-header">
+                <h3>链接详情与分析</h3>
+                <button class="modal-close" id="closeModal" type="button">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

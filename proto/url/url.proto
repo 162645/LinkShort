@@ -1,0 +1,98 @@
+syntax = "proto3";
+
+package url;
+
+option go_package = "github.com/go-systems-lab/go-url-shortener/proto/url";
+
+// URL 短链接服务 - 严格遵循 HLD（高层设计）架构设计的接口实现
+service URLShortener {
+  rpc ShortenURL(ShortenRequest) returns (ShortenResponse);// 1. 创建短链接：接收原始长 URL，返回生成的短码及结果
+  rpc GetURLInfo(GetURLRequest) returns (URLInfo);// 2. 获取链接详情：根据短码查询其完整信息（如长链接、点击数等）
+  rpc DeleteURL(DeleteURLRequest) returns (DeleteResponse);// 3. 删除短链接：从数据库中移除指定的短链接记录
+  rpc GetUserURLs(GetUserURLsRequest) returns (GetUserURLsResponse);// 4. 获取用户链接列表：支持分页查询特定用户创建的所有短链接
+  rpc UpdateURL(UpdateURLRequest) returns (UpdateURLResponse);// 5. 更新链接：修改已有短链接的属性（如修改原始长链接或过期时间）
+}
+
+// 短链接生成请求数据模型
+message ShortenRequest {  //说明：这不是给字段赋值，而是字段的标识号（Tag）。Protobuf 在将数据压缩成二进制时，会使用这些数字来识别字段，因此一旦定义好，就不能轻易修改这些数字。
+  string long_url = 1;
+  string custom_alias = 2;  // 2. 自定义别名：用户可选的自定义短码（例如 google）
+  int64 expiration_time = 3; // 3. 过期时间：Unix 时间戳（秒），设为 0 表示永不过期
+  string user_id = 4;
+  map<string, string> metadata = 5; // 5. 元数据：以键值对形式存储的额外信息（如来源、营销标签等）
+}
+
+// 短链接生成响应模型
+message ShortenResponse {
+  string short_code = 1; // 生成的唯一短码（例如：abc123）
+  string short_url = 2;  // 完整的短链接地址（例如：https://short.ly/abc123）
+  string long_url = 3;   // 原始的长链接地址
+  int64 created_at = 4;  // 创建时间的时间戳（Unix 时间戳）
+  int64 expires_at = 5;  // 过期时间的时间戳（Unix 时间戳，0 表示永不过期）
+  string user_id = 6;    // 所属用户的唯一标识 ID
+}
+
+// 获取链接详情请求模型
+message GetURLRequest {
+  string short_code = 1; // 想要查询的短链接唯一识别码（短码）
+  string user_id = 2;    // 用户 ID：用于权限校验，确保该用户有权查看此链接信息
+}
+
+// 短链接详细信息模型
+message URLInfo {
+  string short_code = 1;           // 短链接唯一识别码（如：abc123）
+  string short_url = 2;            // 完整的短链接访问地址
+  string long_url = 3;             // 原始的目标长链接
+  string user_id = 4;              // 创建该链接的用户唯一标识
+  int64 created_at = 5;            // 创建时间（Unix 时间戳）
+  int64 expires_at = 6;            // 过期时间（Unix 时间戳，0 表示永不过期）
+  int64 click_count = 7;           // 累计点击/访问次数
+  bool is_active = 8;              // 链接当前状态：true 为可用，false 为禁用或封禁
+  map<string, string> metadata = 9; // 额外存储的元数据（键值对形式）
+}
+
+// 删除短链接请求模型
+message DeleteURLRequest {
+  string short_code = 1; // 想要删除的短链接唯一识别码（短码）
+  string user_id = 2;    // 用户 ID：用于权限校验，确保只有链接所有者才能执行删除操作
+}
+
+// 删除短链接响应模型
+message DeleteResponse {
+  bool success = 1;      // 操作是否成功：true 表示删除成功，false 表示失败
+  string message = 2;    // 详细提示信息：例如 "删除成功" 或具体的错误原因
+}
+
+// 获取用户 URL 列表请求模型（支持分页和排序）
+message GetUserURLsRequest {
+  string user_id = 1;      // 用户唯一标识符
+  int32 page = 2;          // 当前请求的页码（从 1 开始）
+  int32 page_size = 3;     // 每页返回的记录数量（如 10, 20）
+  string sort_by = 4;      // 排序字段：如按创建时间 (created_at) 或点击量 (click_count)
+  string sort_order = 5;   // 排序顺序：升序 (asc) 或 降序 (desc)
+}
+
+// 获取用户 URL 列表响应模型
+message GetUserURLsResponse {
+  repeated URLInfo urls = 1; // 匹配到的 URL 详情列表（repeated 表示这是一个数组/切片）
+  int32 total_count = 2;     // 数据库中该用户拥有的链接总条数
+  int32 page = 3;            // 当前返回结果所在的页码
+  int32 page_size = 4;       // 当前返回结果的每页大小
+  bool has_next = 5;         // 是否还有下一页：用于前端控制“加载更多”按钮
+}
+
+// 更新短链接请求模型
+message UpdateURLRequest {
+  string short_code = 1;           // 需要修改的短链接唯一识别码
+  string user_id = 2;              // 用户 ID：用于验证是否有权限修改此链接
+  string new_long_url = 3;         // 可选：新的原始长链接地址
+  int64 new_expiration_time = 4;   // 可选：新的过期时间戳
+  map<string, string> metadata = 5; // 可选：更新或覆盖原有的元数据
+}
+
+// 更新短链接响应模型
+message UpdateURLResponse {
+  bool success = 1;        // 操作是否成功
+  string message = 2;      // 详细提示信息（如 "更新成功" 或错误描述）
+  URLInfo updated_url = 3; // 更新后的完整链接对象：方便前端直接刷新 UI 状态
+}

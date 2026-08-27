@@ -1,0 +1,656 @@
+{
+  "id": null,
+  "uid": "url-shortener-services",
+  "title": "短链接系统 - 应用服务监控看板",
+  "description": "🎯 **工程与业务可观测性面板**\n\n全面监控短链接微服务，包括 SLI/SLO 追踪、性能分析、业务指标和运行洞察。\n\n📊 **面板章节：**\n- 🚨 SLI/SLO 健康度与告警\n- 📈 性能与吞吐量分析\n- 🎯 业务 KPI 与用户参与度\n- 🔧 运行时与资源监控\n- 🐛 错误分析与调试",
+  "tags": ["url-shortener", "services", "sli-slo", "business-metrics", "engineering", "production"],
+  "style": "dark",
+  "timezone": "browser",
+  "refresh": "15s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "🚨 SLI/SLO 健康度与服务状态",
+      "type": "row",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+      "collapsed": false
+    },
+    {
+      "id": 2,
+      "title": "🟢 服务可用性",
+      "description": "**SLI 目标：99.9% 上线率**\n来自 Prometheus 监控的服务健康状态",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "up{job=\"rest-api-service\"}",
+          "legendFormat": "REST API 服务",
+          "refId": "A"
+        }
+      ],
+      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 1},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "custom": {
+            "displayMode": "basic",
+            "orientation": "auto"
+          },
+          "mappings": [
+            {"options": {"0": {"text": "🔴 离线", "color": "red"}}, "type": "value"},
+            {"options": {"1": {"text": "🟢 正常", "color": "green"}}, "type": "value"}
+          ],
+          "thresholds": {
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "green", "value": 1}
+            ]
+          },
+          "unit": "short",
+          "min": 0,
+          "max": 1
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "⚡ 请求吞吐量",
+      "description": "**SLI 目标：处理 1000+ RPS**\n所有端点的每秒总请求数",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{service=\"rest-api\"}[5m]))",
+          "legendFormat": "当前 RPS",
+          "refId": "A"
+        }
+      ],
+      "gridPos": {"h": 4, "w": 5, "x": 4, "y": 1},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "unit": "reqps",
+          "decimals": 2,
+          "thresholds": {
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 0.1},
+              {"color": "green", "value": 1}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "🎯 响应时间 SLI",
+      "description": "**SLI 目标：P95 < 200ms**\n性能监控的响应延迟百分位数",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{service=\"rest-api\"}[5m]))) * 1000",
+          "legendFormat": "P95 延迟 (ms)",
+          "refId": "A"
+        }
+      ],
+      "gridPos": {"h": 4, "w": 5, "x": 9, "y": 1},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "unit": "ms",
+          "decimals": 1,
+          "thresholds": {
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 200},
+              {"color": "red", "value": 500}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "🛡️ 错误率 SLI",
+      "description": "**SLI 目标：< 1% 错误率**\n导致 4xx/5xx 错误请求的百分比",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "100 * sum(rate(http_requests_total{service=\"rest-api\", status=~\"4..|5..\"}[5m])) / (sum(rate(http_requests_total{service=\"rest-api\"}[5m])) > 0 or on() vector(1))",
+          "legendFormat": "错误率 %",
+          "refId": "A"
+        }
+      ],
+      "gridPos": {"h": 4, "w": 5, "x": 14, "y": 1},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "unit": "percent",
+          "decimals": 2,
+          "thresholds": {
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 1},
+              {"color": "red", "value": 5}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "📊 SLO 合规得分",
+      "description": "**整体 SLO 评分**\n基于可用性、延迟和错误率的综合健康得分",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "(\n  (up{job=\"rest-api-service\"} * 100) +\n  (100 - (100 * sum(rate(http_requests_total{service=\"rest-api\", status=~\"4..|5..\"}[5m])) / (sum(rate(http_requests_total{service=\"rest-api\"}[5m])) > 0 or on() vector(1)))) +\n  (100 - clamp_max((histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{service=\"rest-api\"}[5m]))) * 1000) / 2, 100))\n) / 3",
+          "legendFormat": "SLO 分数",
+          "refId": "A"
+        }
+      ],
+      "gridPos": {"h": 4, "w": 5, "x": 19, "y": 1},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "unit": "percent",
+          "decimals": 1,
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 95},
+              {"color": "green", "value": 99}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "📈 性能与吞吐量分析",
+      "type": "row",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 5},
+      "collapsed": false
+    },
+    {
+      "id": 8,
+      "title": "🚀 各业务功能请求率",
+      "description": "核心业务操作的流量分布",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "rate(http_requests_total{service=\"rest-api\", endpoint=\"/api/v1/shorten\"}[5m])",
+          "legendFormat": "🔗 URL 创建 (核心业务)",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(http_requests_total{service=\"rest-api\", endpoint=~\".*:shortCode\", method=~\"GET|DELETE\"}[5m])",
+          "legendFormat": "🔄 URL 管理 (CRUD 操作)",
+          "refId": "B"
+        },
+        {
+          "expr": "rate(http_requests_total{service=\"rest-api\", endpoint=~\"/api/v1/analytics.*\"}[5m])",
+          "legendFormat": "📊 分析统计 (业务情报)",
+          "refId": "C"
+        },
+        {
+          "expr": "rate(http_requests_total{service=\"rest-api\", endpoint=~\"/:.*\", method=\"GET\"}[5m])",
+          "legendFormat": "↗️ 链接重定向 (用户体验)",
+          "refId": "D"
+        },
+        {
+          "expr": "rate(http_requests_total{service=\"rest-api\", endpoint=\"/health\"}[5m])",
+          "legendFormat": "❤️ 健康检查 (监控)",
+          "refId": "E"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 6},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 10
+          }
+        }
+      }
+    },
+    {
+      "id": 9,
+      "title": "⏱️ 响应时间分布",
+      "description": "用于性能 SLI 追踪的延迟百分位数",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(http_request_duration_seconds_bucket{service=\"rest-api\"}[5m]))) * 1000",
+          "legendFormat": "P50 (中位数)",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.90, sum by (le) (rate(http_request_duration_seconds_bucket{service=\"rest-api\"}[5m]))) * 1000",
+          "legendFormat": "P90",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{service=\"rest-api\"}[5m]))) * 1000",
+          "legendFormat": "P95 (SLI 目标)",
+          "refId": "C"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_request_duration_seconds_bucket{service=\"rest-api\"}[5m]))) * 1000",
+          "legendFormat": "P99 (长尾延迟)",
+          "refId": "D"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 6},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "unit": "ms",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth"
+          }
+        }
+      }
+    },
+    {
+      "id": 10,
+      "title": "🚦 HTTP 状态码分析",
+      "description": "用于错误分析的请求成功/失败模式",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "rate(http_requests_total{service=\"rest-api\", status=~\"2..\"}[5m])",
+          "legendFormat": "✅ 2xx 成功",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(http_requests_total{service=\"rest-api\", status=~\"3..\"}[5m])",
+          "legendFormat": "↗️ 3xx 重定向",
+          "refId": "B"
+        },
+        {
+          "expr": "rate(http_requests_total{service=\"rest-api\", status=~\"4..\"}[5m])",
+          "legendFormat": "❌ 4xx 客户端错误",
+          "refId": "C"
+        },
+        {
+          "expr": "rate(http_requests_total{service=\"rest-api\", status=~\"5..\"}[5m])",
+          "legendFormat": "🚨 5xx 服务端错误",
+          "refId": "D"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 14},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "unit": "reqps",
+          "custom": {
+            "fillOpacity": 15
+          }
+        }
+      }
+    },
+    {
+      "id": 11,
+      "title": "📋 状态分布概览",
+      "description": "响应状态码的占比视图",
+      "type": "piechart",
+      "targets": [
+        {
+          "expr": "sum by (status) (rate(http_requests_total{service=\"rest-api\"}[5m]))",
+          "legendFormat": "{{status}}",
+          "refId": "A"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 14},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "hideFrom": {
+              "tooltip": false,
+              "legend": false
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": 12,
+      "title": "🎯 业务 KPI 与用户参与度",
+      "type": "row",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 22},
+      "collapsed": false
+    },
+    {
+      "id": 13,
+      "title": "📈 URL 创建速率",
+      "description": "**核心业务指标**\n每分钟成功的 URL 缩短次数（收入驱动）",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{service=\"rest-api\", endpoint=\"/api/v1/shorten\", status=~\"2..\"}[5m]))",
+          "legendFormat": "✅ 成功创建",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(http_requests_total{service=\"rest-api\", endpoint=\"/api/v1/shorten\", status=~\"4..|5..\"}[5m]))",
+          "legendFormat": "❌ 尝试失败",
+          "refId": "B"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 23},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "unit": "reqps",
+          "custom": {
+            "fillOpacity": 10
+          }
+        }
+      }
+    },
+    {
+      "id": 14,
+      "title": "🔄 用户活跃度",
+      "description": "**用户行为指标**\nURL 点击和管理操作（用户留存）",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{service=\"rest-api\", endpoint=\"/:shortCode\", method=\"GET\", status=~\"2..|3..\"}[5m]))",
+          "legendFormat": "🎯 成功重定向",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(http_requests_total{service=\"rest-api\", endpoint=\"/api/v1/urls/:shortCode\", method=\"GET\", status=~\"2..\"}[5m]))",
+          "legendFormat": "📋 URL 信息查询",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(rate(http_requests_total{service=\"rest-api\", endpoint=\"/api/v1/users/:userID/urls\", status=~\"2..\"}[5m]))",
+          "legendFormat": "👤 用户链接列表",
+          "refId": "C"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 23},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "unit": "reqps"
+        }
+      }
+    },
+    {
+      "id": 15,
+      "title": "📊 分析功能消耗",
+      "description": "**业务情报使用情况**\n看板和分析 API 的消耗模式",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{service=\"rest-api\", endpoint=\"/api/v1/analytics/dashboard\", status=~\"2..\"}[5m]))",
+          "legendFormat": "📈 看板视图",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(http_requests_total{service=\"rest-api\", endpoint=\"/api/v1/analytics/top-urls\", status=~\"2..\"}[5m]))",
+          "legendFormat": "🏆 热门 URL 查询",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(rate(http_requests_total{service=\"rest-api\", endpoint=\"/api/v1/analytics/urls/:shortCode\", status=~\"2..\"}[5m]))",
+          "legendFormat": "📋 URL 统计查询",
+          "refId": "C"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 23},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "unit": "reqps"
+        }
+      }
+    },
+    {
+      "id": 16,
+      "title": "🔧 运行时与资源监控",
+      "type": "row",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 31},
+      "collapsed": false
+    },
+    {
+      "id": 17,
+      "title": "🧠 内存使用概况",
+      "description": "Go 运行时内存分配和使用模式",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "go_memstats_alloc_bytes{job=\"rest-api-service\"} / 1024 / 1024",
+          "legendFormat": "💾 已分配内存 (MB)",
+          "refId": "A"
+        },
+        {
+          "expr": "go_memstats_heap_inuse_bytes{job=\"rest-api-service\"} / 1024 / 1024",
+          "legendFormat": "🏠 堆内存使用中 (MB)",
+          "refId": "B"
+        },
+        {
+          "expr": "go_memstats_stack_inuse_bytes{job=\"rest-api-service\"} / 1024 / 1024",
+          "legendFormat": "📚 栈内存使用中 (MB)",
+          "refId": "C"
+        },
+        {
+          "expr": "go_memstats_sys_bytes{job=\"rest-api-service\"} / 1024 / 1024",
+          "legendFormat": "🖥️ 系统内存占用 (MB)",
+          "refId": "D"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 32},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 18,
+      "title": "⚡ 协程与线程管理",
+      "description": "Go 并发和线程指标",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "go_goroutines{job=\"rest-api-service\"}",
+          "legendFormat": "🔄 活跃协程 (Goroutines)",
+          "refId": "A"
+        },
+        {
+          "expr": "go_threads{job=\"rest-api-service\"}",
+          "legendFormat": "🧵 OS 线程",
+          "refId": "B"
+        },
+        {
+          "expr": "go_sched_gomaxprocs_threads{job=\"rest-api-service\"}",
+          "legendFormat": "⚙️ GOMAXPROCS",
+          "refId": "C"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 32},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 19,
+      "title": "🗑️ 垃圾回收性能",
+      "description": "GC 频率、持续时间和效率指标",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "rate(go_gc_duration_seconds_count{job=\"rest-api-service\"}[5m])",
+          "legendFormat": "🔄 GC 频率 (ops/sec)",
+          "refId": "A"
+        },
+        {
+          "expr": "go_gc_duration_seconds{job=\"rest-api-service\", quantile=\"0.5\"} * 1000",
+          "legendFormat": "⏱️ GC 耗时 P50 (ms)",
+          "refId": "B"
+        },
+        {
+          "expr": "go_gc_duration_seconds{job=\"rest-api-service\", quantile=\"0.95\"} * 1000",
+          "legendFormat": "⏱️ GC 耗时 P95 (ms)",
+          "refId": "C"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 32},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 20,
+      "title": "🐛 错误分析与调试",
+      "type": "row",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 40},
+      "collapsed": false
+    },
+    {
+      "id": 21,
+      "title": "🚨 按端点划分的错误率",
+      "description": "端点特定的错误分析，用于针对性调试",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "rate(http_requests_total{service=\"rest-api\", endpoint=\"/api/v1/shorten\", status=~\"4..|5..\"}[5m])",
+          "legendFormat": "🔗 URL 创建错误",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(http_requests_total{service=\"rest-api\", endpoint=~\"/api/v1/urls/.*\", status=~\"4..|5..\"}[5m])",
+          "legendFormat": "📋 URL 管理错误",
+          "refId": "B"
+        },
+        {
+          "expr": "rate(http_requests_total{service=\"rest-api\", endpoint=~\"/api/v1/analytics.*\", status=~\"4..|5..\"}[5m])",
+          "legendFormat": "📊 分析错误",
+          "refId": "C"
+        },
+        {
+          "expr": "rate(http_requests_total{service=\"rest-api\", endpoint=~\"/:.*\", status=~\"4..|5..\"}[5m])",
+          "legendFormat": "↗️ 重定向错误",
+          "refId": "D"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 41},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "unit": "reqps"
+        }
+      }
+    },
+    {
+      "id": 22,
+      "title": "⏰ 按状态码划分的响应时间",
+      "description": "延迟与成功/失败模式的相关性",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{service=\"rest-api\", status=~\"2..\"}[5m]))) * 1000",
+          "legendFormat": "✅ 成功 (2xx) P95",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{service=\"rest-api\", status=~\"4..\"}[5m]))) * 1000",
+          "legendFormat": "❌ 客户端错误 (4xx) P95",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{service=\"rest-api\", status=~\"5..\"}[5m]))) * 1000",
+          "legendFormat": "🚨 服务端错误 (5xx) P95",
+          "refId": "C"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 41},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "unit": "ms"
+        }
+      }
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": false,
+          "text": "5m",
+          "value": "5m"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "频率间隔",
+        "multi": false,
+        "name": "rate_interval",
+        "options": [
+          {"selected": false, "text": "1m", "value": "1m"},
+          {"selected": true, "text": "5m", "value": "5m"},
+          {"selected": false, "text": "10m", "value": "10m"},
+          {"selected": false, "text": "15m", "value": "15m"}
+        ],
+        "query": "1m,5m,10m,15m",
+        "queryValue": "",
+        "skipUrlSync": false,
+        "type": "custom"
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "注释与告警",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "schemaVersion": 27,
+  "version": 4,
+  "links": [
+    {
+      "title": "🏗️ 基础设施监控看板",
+      "url": "/d/infrastructure-monitoring-url-shortener/infrastructure-monitoring-url-shortener",
+      "type": "link",
+      "tags": ["infrastructure"]
+    },
+    {
+      "title": "📚 操作手册与文档",
+      "url": "https://github.com/go-systems-lab/go-url-shortener",
+      "type": "link",
+      "targetBlank": true
+    },
+    {
+      "title": "🚨 告警管理器",
+      "url": "/alerting/list",
+      "type": "link"
+    }
+  ]
+}
